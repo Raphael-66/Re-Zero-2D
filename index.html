@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1c1830">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Re:Zero 2D — Um dia de cada vez</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#14111f;color:#f4efe4;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
+button{font:inherit;color:inherit;cursor:pointer}
+#cv{position:fixed;inset:0;display:block;image-rendering:pixelated}
+#game{display:none}
+/* HUD */
+#hud{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;right:8px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:5}
+.box{background:rgba(28,22,44,.82);border:2px solid #6a5a8a;border-radius:10px;padding:5px 10px;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+#hDate{font-size:12px;opacity:.85}
+#hTime{font-size:17px;font-weight:700;letter-spacing:.5px}
+#hRight{display:flex;gap:6px;align-items:flex-start}
+#hGold{font-weight:700;font-size:15px;color:#f2d06b}
+#hEn{width:16px;height:64px;padding:2px;display:flex;align-items:flex-end;border-radius:6px}
+#hEn i{display:block;width:100%;border-radius:3px;background:#6fcf5a;height:100%;transition:height .3s}
+/* botões */
+.pad{position:fixed;z-index:6;border-radius:50%;border:3px solid rgba(255,255,255,.55);background:rgba(28,22,44,.55);font-weight:800;display:flex;align-items:center;justify-content:center;touch-action:none}
+#btnA{right:22px;bottom:calc(46px + env(safe-area-inset-bottom));width:78px;height:78px;font-size:26px;background:rgba(80,140,90,.6)}
+#btnA.lbl{font-size:14px}
+#btnA.on{transform:scale(.93);background:rgba(110,190,120,.8)}
+#btnB{right:112px;bottom:calc(30px + env(safe-area-inset-bottom));width:56px;height:56px;font-size:20px;background:rgba(120,90,160,.6)}
+#joy{position:fixed;width:100px;height:100px;border-radius:50%;border:3px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);display:none;z-index:4;pointer-events:none}
+#knob{position:absolute;left:28px;top:28px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.45)}
+@media (pointer:fine){.pad{opacity:.75}}
+/* diálogo */
+#dlg{position:fixed;left:8px;right:8px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:8;max-width:640px;margin:0 auto;background:#f6efdc;color:#3a2a20;border:3px solid #7a4f2a;border-radius:12px;padding:12px 14px 10px;box-shadow:0 4px 0 rgba(0,0,0,.35);font-size:15.5px;line-height:1.4}
+#dlg .nm{position:absolute;top:-16px;left:12px;background:#7a4f2a;color:#fff4d8;font-weight:700;font-size:13px;padding:3px 10px;border-radius:8px}
+#dlg .tx{min-height:42px}
+#dlg .ch{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#dlg .ch button{flex:1 1 auto;min-width:40%;padding:9px 10px;border-radius:9px;border:2px solid #7a4f2a;background:#fff8e8;color:#3a2a20;font-weight:700}
+#dlg .more{text-align:right;font-size:12px;opacity:.6;animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.15}}
+.ico{width:22px;height:22px;image-rendering:pixelated;vertical-align:middle;flex:none}
+.ico.big{width:40px;height:40px;float:left;margin:0 10px 4px 0}
+/* toast */
+#toast{position:fixed;left:50%;top:calc(84px + env(safe-area-inset-top));transform:translate(-50%,-10px);opacity:0;transition:.25s;z-index:9;background:rgba(28,22,44,.9);border:2px solid #6a5a8a;padding:6px 14px;border-radius:20px;font-size:14px;font-weight:600;display:flex;gap:6px;align-items:center;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+/* painel */
+#panel{position:fixed;inset:0;z-index:10;background:rgba(10,8,20,.55);display:flex;align-items:flex-end;justify-content:center}
+#panel[hidden],#dlg[hidden]{display:none}
+#panel .card{width:100%;max-width:560px;max-height:86vh;display:flex;flex-direction:column;background:#f6efdc;color:#3a2a20;border:3px solid #7a4f2a;border-bottom:0;border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+#panel .hd{display:flex;align-items:center;padding:10px 12px;border-bottom:2px solid #e0d2b4}
+#panel .pt{flex:1;font-weight:800;font-size:17px}
+#panel .px{border:0;background:#7a4f2a;color:#fff;border-radius:8px;width:34px;height:34px;font-size:18px}
+#panel .pb{overflow:auto;padding:10px 12px 16px;touch-action:pan-y}
+.tabs{display:flex;gap:4px;margin-bottom:8px;overflow-x:auto}
+.tabs button{flex:1;padding:8px 6px;border-radius:8px;border:2px solid #c8b48e;background:#fff8e8;font-weight:700;font-size:13px;white-space:nowrap}
+.tabs button.on{background:#7a4f2a;color:#fff;border-color:#7a4f2a}
+.list{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;align-items:center;gap:8px;background:#fff8e8;border:2px solid #e0d2b4;border-radius:10px;padding:7px 9px}
+.row.done{opacity:.6}
+.row .g{flex:1;min-width:0}
+.row small{display:block;opacity:.7;font-size:12px;margin-top:1px}
+.row button,.wide{padding:7px 12px;border-radius:8px;border:2px solid #7a4f2a;background:#fff;font-weight:700;color:#3a2a20}
+.row button:disabled{opacity:.4}
+.wide{width:100%;padding:11px}
+.wide.danger{border-color:#a83a3a;color:#a83a3a}
+.muted{opacity:.7;font-size:13px;margin:4px 0 8px}
+.hearts{color:#d8456a;letter-spacing:-1px;font-size:13px}
+.tag{background:#5a8a4a;color:#fff;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:700}
+/* título */
+#title{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:radial-gradient(circle at 50% 30%,#3a2f5a,#14111f 70%);z-index:20;text-align:center}
+#title h1{margin:0;font-size:40px;letter-spacing:1px;text-shadow:0 3px 0 #000}
+#title h1 span{color:#b9a3ff}
+#title .sub{opacity:.8;margin:-4px 0 12px}
+#title button,#tName input{width:min(300px,86vw);padding:13px;border-radius:12px;border:3px solid #6a5a8a;background:#2a2244;font-weight:700;font-size:16px}
+#title button.main{background:#5a8a4a;border-color:#8fc47a}
+#tName{display:none;flex-direction:column;gap:10px;align-items:center}
+#tName input{background:#f6efdc;color:#3a2a20;text-align:center;user-select:text;-webkit-user-select:text}
+#title .fine{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));font-size:11px;opacity:.5;padding:0 20px}
+#logo{width:96px;height:96px;image-rendering:pixelated}
+</style>
+</head>
+<body>
+<div id="title">
+  <img id="logo" src="icons/icon-192.png" alt="">
+  <h1>Re:Zero <span>2D</span></h1>
+  <div class="sub">Um dia de cada vez</div>
+  <button id="tCont" class="main">Continuar</button>
+  <button id="tNew">Novo jogo</button>
+  <form id="tName">
+    <label>Como você se chama?</label>
+    <input maxlength="14" placeholder="Viajante" autocomplete="off">
+    <button class="main" type="submit">Começar</button>
+  </form>
+  <div class="fine">Jogo de fã, sem fins lucrativos. Textos e desenhos originais. Re:Zero pertence aos seus criadores.</div>
+</div>
+
+<div id="game">
+  <canvas id="cv"></canvas>
+  <div id="hud">
+    <div class="box"><div id="hDate"></div><div id="hTime"></div></div>
+    <div id="hRight"><div class="box" id="hGold"></div><div class="box" id="hEn"><i></i></div></div>
+  </div>
+  <div id="joy"><div id="knob"></div></div>
+  <button id="btnB" class="pad" aria-label="Menu">B</button>
+  <button id="btnA" class="pad" aria-label="Ação">A</button>
+  <div id="dlg" hidden><div class="nm"></div><div class="tx"></div><div class="ch"></div><div class="more">▼</div></div>
+  <div id="toast"></div>
+  <div id="panel" hidden><div class="card"><div class="hd"><div class="pt"></div><button class="px" aria-label="Fechar">✕</button></div><div class="pb"></div></div></div>
+</div>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
