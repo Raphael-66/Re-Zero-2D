@@ -1,5 +1,11 @@
 # Histórico
 
+## 2026-11-27 — Versão 1.1: novo visual das pessoas
+- Pessoas redesenhadas no estilo pixel de fazendinha: cabeça maior, sombras, contorno escuro e passo animado.
+- Marta ganhou coque; Tomás, barba cheia; Seu Bento, chapéu de palha com aba.
+- Manto neutro novo (capuz, fecho e barra), igual para todas as pessoas da série.
+- Suporte a sprites próprios: `js/sprites.js` + pasta `sprites/` (folha 48x128). Sem imagem, volta o visual padrão. Guia em `docs/SPRITES.md`.
+
 ## 2026-11-27 — Versão 1: o mundo base
 - Motor 2D em canvas, sem bibliotecas: mapas por tiles desenhados em código, colisão, portas, câmera, joystick de toque e teclado.
 - Mapas: Mansão Roswaal, Salão (quarto, cozinha, biblioteca, escritório), Estrada do Bosque (lago, píer, Chalé do Lago), Vila de Irlam (praça, poço, banca), Casinha de Irlam.

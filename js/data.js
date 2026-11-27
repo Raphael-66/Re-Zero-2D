@@ -333,7 +333,7 @@
       sched: [[6, "salao", 25, 14, "down"], [13, "mansao", 23, 23, "down"], [16, "salao", 25, 14, "down"]] },
     petra: { n: "Petra", f: true, canon: true, look: NEUTRO, love: ["flor", "amora", "doce"], like: ["cristal", "buque", "bolo"], hate: ["bagre", "pinha"],
       sched: [[8, "irlam", 25, 18, "down"], [13, "irlam", 13, 17, "down"], [17, "irlam", 9, 12, "down"], [20, null]] },
-    marta: { n: "Marta", f: true, look: { hair: "#c9c4bd", skin: "#e7b892", top: "#a5483a", legs: "#5a4a3a", apron: "#efe8da" },
+    marta: { n: "Marta", f: true, look: { hair: "#c9c4bd", skin: "#e7b892", top: "#a5483a", legs: "#5a4a3a", apron: "#efe8da", bun: true },
       love: ["erva", "cha"], like: ["lambari", "perca", "carpa", "cogumelo"], hate: [], shop: true,
       sched: [[7, "irlam", 17, 21, "up"], [19, null]] },
     tomas: { n: "Tomás", f: false, look: { hair: "#5a3a22", skin: "#d9a57a", top: "#4f7a4a", legs: "#4a3b2c", beard: "#5a3a22" },

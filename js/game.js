@@ -392,49 +392,145 @@
   }
 
   /* ================= pessoas (desenho) ================= */
+  // Estilo: bonequinho de 16x24 com cabeça grande, sombra e contorno escuro.
+  // Cada pose é desenhada uma vez num canvas pequeno e guardada em cache.
+  // Sprites próprios: veja js/sprites.js e docs/SPRITES.md (folha 48x128, quadros 16x32).
   var PLOOK = { hair: "#4a2f22", skin: "#f1c7a5", top: "#3c6fb0", legs: "#3b3b4a" };
-  function drawPerson(c, x, y, lk, dir, fr) {
-    x = Math.round(x); y = Math.round(y);
-    var L = x - 6, st = fr % 2 ? (fr === 1 ? 1 : -1) : 0, side = dir === "left" || dir === "right";
-    c.fillStyle = "rgba(0,0,0,.25)"; c.beginPath(); c.ellipse(x, y - 1, 6, 2.2, 0, 0, 7); c.fill();
-    var cloak = lk.cloak;
-    // pernas
-    var legC = cloak ? "#5a544a" : lk.legs;
-    if (side) { R(c, L + 4 + st, y - 6, 2, 5, legC); R(c, L + 6 - st, y - 6, 2, 5, legC); R(c, L + 4 + st, y - 2, 2, 1, "#2a2020"); R(c, L + 6 - st, y - 2, 2, 1, "#2a2020"); }
-    else { R(c, L + 3, y - 6, 2, st > 0 ? 4 : 5, legC); R(c, L + 7, y - 6, 2, st < 0 ? 4 : 5, legC); R(c, L + 3, y - 2 - (st > 0 ? 1 : 0), 2, 1, "#2a2020"); R(c, L + 7, y - 2 - (st < 0 ? 1 : 0), 2, 1, "#2a2020"); }
-    // corpo
-    if (cloak) {
-      R(c, L + 1, y - 14, 10, 10, cloak); R(c, L + 2, y - 5, 8, 1, "#6f685c");
-      R(c, L + 5, y - 13, 2, 6, "#7a7366");
+  var OUTLINE = "#2b1d1a";
+  function sh(hex, k) { // k<0 escurece, k>0 clareia
+    var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    function f(v) { return Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))); }
+    return "rgb(" + f(r) + "," + f(g) + "," + f(b) + ")";
+  }
+  function stepOf(fr) { return fr % 2 ? (fr === 1 ? 1 : -1) : 0; }
+
+  // pinta a pose em coordenadas locais (0..15 x 0..23); pés na linha 23
+  function paintPerson(c, lk, dir, fr) {
+    var st = stepOf(fr), side = dir === "left" || dir === "right", P = function (x, y, w, h, col) { R(c, x, y, w, h, col); };
+    var skin = lk.skin, skinD = sh(skin, -0.18), shoe = "#3a2a24";
+    if (lk.cloak) { paintCloak(c, lk, dir, st, side); return; }
+    var top = lk.top, topD = sh(top, -0.28), topL = sh(top, 0.18), legs = lk.legs, legsD = sh(legs, -0.3);
+    var hair = lk.hair, hairD = sh(hair, -0.3), hairL = sh(hair, 0.28);
+    // pernas e sapatos
+    if (side) {
+      P(6 + st, 18, 2, 4, legs); P(8 - st, 18, 2, 4, legsD);
+      P(dir === "left" ? 5 + st : 6 + st, 22, 3, 2, shoe); P(dir === "left" ? 7 - st : 8 - st, 22, 3, 2, shoe);
     } else {
-      R(c, L + 2, y - 13, 8, 8, lk.top); R(c, L + 2, y - 7, 8, 1, "rgba(0,0,0,.2)");
-      if (lk.apron) R(c, L + 3, y - 11, 6, 6, lk.apron);
-      var arm = side ? 0 : st;
-      R(c, L + 1, y - 12 + arm, 1, 5, lk.top); R(c, L + 10, y - 12 - arm, 1, 5, lk.top);
-      R(c, L + 1, y - 7 + arm, 1, 1, lk.skin); R(c, L + 10, y - 7 - arm, 1, 1, lk.skin);
+      var la = st > 0 ? 1 : 0, lb = st < 0 ? 1 : 0;
+      P(5, 18, 2, 4 - la, legs); P(9, 18, 2, 4 - lb, legsD);
+      P(5, 22 - la, 2, 2, shoe); P(9, 22 - lb, 2, 2, shoe);
+    }
+    // tronco
+    P(4, 11, 8, 7, top); P(10, 11, 2, 7, topD); P(4, 11, 2, 1, topL);
+    P(4, 17, 8, 1, topD); // cinto/bainha
+    if (lk.apron) { P(5, 13, 6, 6, lk.apron); P(9, 13, 2, 6, sh(lk.apron, -0.12)); P(5, 12, 6, 1, sh(lk.apron, -0.2)); }
+    if (dir === "down" && !lk.apron) P(7, 11, 2, 2, sh(top, -0.12)); // gola
+    // braços
+    if (side) {
+      var ax = dir === "left" ? 7 : 8, sw = st;
+      P(ax, 12, 2, 5, topD); P(ax, 17 + (sw ? 0 : 0), 2, 1, skin);
+    } else {
+      var a = st;
+      P(3, 12 + a, 1, 5, top); P(12, 12 - a, 1, 5, topD);
+      P(3, 17 + a, 1, 1, skin); P(12, 17 - a, 1, 1, skinD);
     }
     // cabeça
-    var hy = y - 21;
-    R(c, L + 2, hy + 1, 8, 7, lk.skin);
-    if (cloak) {
-      R(c, L + 1, hy, 10, 3, cloak); R(c, L + 1, hy, 2, 9, cloak); R(c, L + 9, hy, 2, 9, cloak);
-      if (dir === "up") R(c, L + 1, hy, 10, 9, cloak);
-      else if (dir === "left") R(c, L + 6, hy, 5, 9, cloak);
-      else if (dir === "right") R(c, L + 1, hy, 5, 9, cloak);
-    } else {
-      R(c, L + 2, hy, 8, 2, lk.hair);
-      if (dir === "up") R(c, L + 2, hy, 8, 7, lk.hair);
-      else if (dir === "left") R(c, L + 6, hy, 4, 5, lk.hair);
-      else if (dir === "right") R(c, L + 2, hy, 4, 5, lk.hair);
-      else { R(c, L + 2, hy + 2, 1, 3, lk.hair); R(c, L + 9, hy + 2, 1, 3, lk.hair); }
-      if (lk.beard && dir !== "up") R(c, L + (dir === "left" ? 2 : dir === "right" ? 6 : 3), hy + 6, dir === "down" ? 6 : 4, 2, lk.beard);
-      if (lk.hat) { R(c, L, hy, 12, 2, lk.hat); R(c, L + 2, hy - 2, 8, 2, lk.hat); R(c, L + 2, hy, 8, 1, "#a88a42"); }
+    P(4, 3, 8, 8, skin); P(3, 5, 1, 4, skin); P(12, 5, 1, 4, skinD);
+    P(4, 10, 8, 1, skinD);
+    // cabelo
+    if (lk.bun) { P(6, 0, 4, 3, hair); P(7, 0, 2, 1, hairL); }
+    P(3, 2, 10, 3, hair); P(4, 1, 8, 1, hair); P(5, 1, 4, 1, hairL); P(4, 2, 3, 1, hairL);
+    if (dir === "up") { P(3, 2, 10, 8, hair); P(11, 3, 2, 7, hairD); P(4, 9, 8, 1, hairD); P(5, 2, 4, 2, hairL); }
+    else if (dir === "left") { P(7, 2, 6, 7, hair); P(11, 4, 2, 5, hairD); P(3, 5, 2, 1, hair); }
+    else if (dir === "right") { P(3, 2, 6, 7, hair); P(3, 4, 2, 5, hairD); P(11, 5, 2, 1, hair); }
+    else { P(3, 5, 1, 4, hair); P(12, 5, 1, 4, hairD); P(5, 5, 1, 1, hair); P(8, 5, 2, 1, hair); }
+    // chapéu
+    if (lk.hat) { var ht = lk.hat, htD = sh(ht, -0.3); P(1, 4, 14, 1, htD); P(2, 3, 12, 1, ht); P(4, 0, 8, 3, ht); P(4, 2, 8, 1, htD); P(5, 0, 3, 1, sh(ht, 0.25)); }
+    // barba
+    if (lk.beard && dir !== "up") {
+      if (dir === "down") { P(4, 8, 8, 3, lk.beard); P(6, 8, 4, 1, skinD); }
+      else P(dir === "left" ? 3 : 7, 8, 6, 3, lk.beard);
     }
-    // olhos
-    var ey = hy + 4;
-    if (dir === "down") { R(c, L + 4, ey, 1, 2, "#2a2a3a"); R(c, L + 7, ey, 1, 2, "#2a2a3a"); }
-    else if (dir === "left") R(c, L + 3, ey, 1, 2, "#2a2a3a");
-    else if (dir === "right") R(c, L + 8, ey, 1, 2, "#2a2a3a");
+    // rosto
+    var eye = "#2a2230";
+    if (dir === "down") {
+      P(5, 6, 2, 2, eye); P(9, 6, 2, 2, eye); P(5, 6, 1, 1, "#fff"); P(9, 6, 1, 1, "#fff");
+      if (!lk.beard) { P(4, 8, 1, 1, sh(skin, -0.08) ); P(11, 8, 1, 1, sh(skin, -0.08)); P(7, 9, 2, 1, skinD); }
+    } else if (dir === "left") { P(4, 6, 2, 2, eye); P(4, 6, 1, 1, "#fff"); }
+    else if (dir === "right") { P(10, 6, 2, 2, eye); P(11, 6, 1, 1, "#fff"); }
+  }
+
+  // manto neutro: o mesmo para todas as pessoas da série
+  function paintCloak(c, lk, dir, st, side) {
+    var P = function (x, y, w, h, col) { R(c, x, y, w, h, col); };
+    var k = lk.cloak, kD = sh(k, -0.25), kDD = sh(k, -0.42), kL = sh(k, 0.18), skin = lk.skin, trim = "#c9b98f", shoe = "#3a2a24";
+    // pés
+    if (side) { P(6 + st, 21, 3, 3, shoe); P(8 - st, 21, 3, 3, sh(shoe, -0.2)); }
+    else { P(4, 22 - (st > 0 ? 1 : 0), 3, 2, shoe); P(9, 22 - (st < 0 ? 1 : 0), 3, 2, shoe); }
+    // corpo em trapézio
+    var sw = st ? 1 : 0;
+    P(4, 10, 8, 2, k); P(3, 12, 10, 4, k); P(2, 16, 12, 5, k); P(2 + (st < 0 ? 0 : sw), 21, 12 - sw, 1, k);
+    P(2, 21, 12, 1, trim); P(2, 20, 12, 1, kD);
+    if (side) { P(dir === "left" ? 10 : 2, 12, 3, 9, kD); P(dir === "left" ? 6 : 8, 13, 2, 6, kDD); }
+    else {
+      P(10, 12, 3, 9, kD); P(3, 12, 2, 4, kL);
+      if (dir === "down") { P(7, 12, 2, 8, kD); P(7, 11, 2, 2, trim); P(7, 11, 1, 1, sh(trim, 0.4)); P(3, 16 - st, 1, 1, skin); P(12, 16 + st, 1, 1, sh(skin, -0.18)); }
+      else { P(7, 12, 2, 8, kD); P(4, 10, 8, 2, kD); }
+    }
+    // capuz
+    P(3, 1, 10, 10, k); P(4, 0, 8, 1, k); P(5, 0, 4, 1, kL); P(4, 1, 3, 1, kL);
+    if (dir === "down") {
+      P(5, 4, 6, 6, kDD); P(5, 5, 6, 5, skin); P(5, 5, 6, 1, sh(skin, -0.3)); P(10, 6, 1, 4, sh(skin, -0.15));
+      P(6, 7, 1, 2, "#2a2230"); P(9, 7, 1, 2, "#2a2230");
+      P(11, 2, 2, 9, kD); P(4, 10, 8, 1, kD);
+    } else if (dir === "left") {
+      P(3, 4, 5, 6, kDD); P(3, 5, 4, 5, skin); P(3, 5, 4, 1, sh(skin, -0.3)); P(4, 7, 1, 2, "#2a2230");
+      P(10, 2, 3, 9, kD); P(8, 3, 1, 7, kL);
+    } else if (dir === "right") {
+      P(8, 4, 5, 6, kDD); P(9, 5, 4, 5, skin); P(9, 5, 4, 1, sh(skin, -0.3)); P(11, 7, 1, 2, "#2a2230");
+      P(3, 2, 3, 9, kD); P(7, 3, 1, 7, kL);
+    } else { P(11, 2, 2, 9, kD); P(7, 2, 2, 8, kD); P(3, 10, 10, 1, kD); }
+  }
+
+  var PCACHE = {};
+  function personCanvas(lk, dir, fr) {
+    var f = fr % 2 ? fr : 0, key = JSON.stringify(lk) + dir + f;
+    if (PCACHE[key]) return PCACHE[key];
+    var w = 18, h = 26;
+    var body = document.createElement("canvas"); body.width = w; body.height = h;
+    var bc = body.getContext("2d"); bc.translate(1, 1); paintPerson(bc, lk, dir, f);
+    var sil = document.createElement("canvas"); sil.width = w; sil.height = h;
+    var sc = sil.getContext("2d"); sc.drawImage(body, 0, 0); sc.globalCompositeOperation = "source-in"; R(sc, 0, 0, w, h, OUTLINE);
+    var out = document.createElement("canvas"); out.width = w; out.height = h;
+    var oc = out.getContext("2d");
+    [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(function (d) { oc.drawImage(sil, d[0], d[1]); });
+    oc.drawImage(body, 0, 0);
+    PCACHE[key] = out;
+    return out;
+  }
+
+  // sprites próprios (opcionais): folha 48x128, 4 linhas (baixo, esquerda, direita, cima) x 3 quadros (parado, passo 1, passo 2)
+  var SPR = {}, SROW = { down: 0, left: 1, right: 2, up: 3 };
+  (function loadSprites() {
+    var list = window.RZ_SPRITES || {};
+    Object.keys(list).forEach(function (id) {
+      var im = new Image();
+      im.onload = function () { SPR[id] = im; };
+      im.onerror = function () { delete SPR[id]; };
+      im.src = list[id];
+    });
+  })();
+
+  function drawPerson(c, x, y, lk, dir, fr, id) {
+    x = Math.round(x); y = Math.round(y);
+    c.fillStyle = "rgba(0,0,0,.25)"; c.beginPath(); c.ellipse(x, y - 1, 6, 2.2, 0, 0, 7); c.fill();
+    var im = id && SPR[id];
+    if (im) {
+      var col = fr === 1 ? 1 : fr === 3 ? 2 : 0;
+      c.drawImage(im, col * 16, (SROW[dir] || 0) * 32, 16, 32, x - 8, y - 32, 16, 32);
+      return;
+    }
+    c.drawImage(personCanvas(lk, dir, fr), x - 9, y - 25);
   }
 
   /* ================= ícones de itens ================= */
@@ -1280,9 +1376,9 @@
       ctx.drawImage(icon(f[2]), f[0] * T + 2, f[1] * T + 1 + bob, 12, 12);
     });
     // pessoas
-    var ents = npcsHere().map(function (n) { return { y: n.y, f: function () { drawPerson(ctx, n.x, n.y, RZ.PEOPLE[n.id].look, n.dir, n.fr); } }; });
+    var ents = npcsHere().map(function (n) { return { y: n.y, f: function () { drawPerson(ctx, n.x, n.y, RZ.PEOPLE[n.id].look, n.dir, n.fr, n.id); } }; });
     var pfr = walkT > 0 ? Math.floor(walkT * 8) % 4 : 0;
-    ents.push({ y: S.y, f: function () { drawPerson(ctx, S.x, S.y, PLOOK, S.dir, pfr); } });
+    ents.push({ y: S.y, f: function () { drawPerson(ctx, S.x, S.y, PLOOK, S.dir, pfr, "player"); } });
     ents.sort(function (a, b) { return a.y - b.y; }).forEach(function (e) { e.f(); });
     ctx.drawImage(mc.top, 0, 0);
     // pesca (no mundo)
@@ -1416,7 +1512,8 @@
 
   window.RZG = { // usado pelos testes
     get S() { return S; }, get F() { return F; }, NPC: NPC, goMap: goMap, sleep: sleep, target: target, interact: interact,
-    talkTo: talkTo, buyHouse: buyHouse, addItem: addItem, solidTile: solidTile, advance: advance, get cur() { return cur; }
+    talkTo: talkTo, buyHouse: buyHouse, addItem: addItem, solidTile: solidTile, advance: advance, get cur() { return cur; },
+    personCanvas: personCanvas, PLOOK: PLOOK, get SPR() { return SPR; }
   };
   showTitle();
   requestAnimationFrame(loop);
